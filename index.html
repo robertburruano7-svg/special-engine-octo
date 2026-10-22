@@ -1,0 +1,691 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="referrer" content="strict-origin-when-cross-origin">
+<title>My Player</title>
+<style>
+  /* ============ everything is in this one file ============ */
+  :root{
+    --bg:#0e0e10; --panel:#17171b; --panel2:#1f1f26; --line:#2b2b33;
+    --txt:#f3f3f5; --dim:#9b9ba6; --red:#ff3355; --blue:#4da3ff;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--txt);
+    font:15px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif}
+  .wrap{max-width:980px;margin:0 auto;padding:18px 16px 80px}
+  header{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:14px}
+  h1{font-size:22px;margin:0}
+  h1 .dot{color:var(--red)}
+  .gear{margin-left:auto;background:var(--panel);border:1px solid var(--line);
+    color:var(--txt);padding:7px 12px;border-radius:8px;cursor:pointer}
+  .gear:hover{background:var(--panel2)}
+
+  .searchbar{display:flex;gap:8px;margin:0 0 16px}
+  .searchbar input{flex:1;padding:11px 14px;border-radius:24px;border:1px solid var(--line);
+    background:var(--panel);color:var(--txt);font-size:15px;outline:none;min-width:0}
+  .searchbar input:focus{border-color:var(--blue)}
+  .searchbar button{padding:11px 20px;border-radius:24px;border:0;background:var(--red);
+    color:#fff;font-weight:600;cursor:pointer;font-size:15px}
+  .searchbar button:disabled{opacity:.6;cursor:default}
+
+  .playerbox{position:relative;aspect-ratio:16/9;background:#000;border-radius:12px;
+    overflow:hidden;border:1px solid var(--line)}
+  .playerbox iframe{position:absolute;inset:0;width:100%;height:100%;border:0}
+
+  .np{display:flex;align-items:center;gap:10px;margin:12px 2px 4px}
+  .np .t{font-weight:600;font-size:16px;flex:1;min-width:0;overflow:hidden;
+    text-overflow:ellipsis;white-space:nowrap}
+  .np .c{color:var(--dim);font-size:13px}
+
+  button.chip{background:var(--panel);border:1px solid var(--line);color:var(--txt);
+    border-radius:999px;padding:7px 13px;cursor:pointer;font-size:13px;white-space:nowrap}
+  button.chip:hover{background:var(--panel2)}
+  button.chip.on{background:var(--red);border-color:var(--red)}
+
+  section{margin-top:26px}
+  section > h2{font-size:16px;margin:0}
+  .msg{color:var(--dim);font-size:13px;margin:6px 2px 10px;min-height:18px}
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(215px,1fr));gap:12px}
+
+  .card{position:relative;background:var(--panel);border:1px solid var(--line);
+    border-radius:10px;overflow:hidden;cursor:pointer;transition:transform .12s,background .12s}
+  .card:hover{background:var(--panel2);transform:translateY(-2px)}
+  .thumb{position:relative;aspect-ratio:16/9;background:#000}
+  .thumb img{width:100%;height:100%;object-fit:cover;display:block}
+  .dur{position:absolute;right:5px;bottom:5px;background:rgba(0,0,0,.8);
+    font-size:12px;padding:1px 5px;border-radius:4px}
+  .meta{padding:9px 10px 11px}
+  .ct{font-size:13.5px;font-weight:600;line-height:1.3;max-height:2.6em;overflow:hidden;
+    display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+  .cc{color:var(--dim);font-size:12.5px;margin-top:4px;overflow:hidden;
+    text-overflow:ellipsis;white-space:nowrap}
+  .addq{position:absolute;top:6px;right:6px;width:27px;height:27px;border-radius:50%;
+    border:0;background:rgba(0,0,0,.75);color:#fff;font-size:16px;line-height:1;
+    cursor:pointer;opacity:0;transition:opacity .12s}
+  .card:hover .addq{opacity:1}
+  .addq:hover{background:var(--red)}
+
+  .controls{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0 12px}
+  .qrow{display:flex;align-items:center;gap:10px;background:var(--panel);
+    border:1px solid var(--line);border-radius:10px;padding:8px 10px;margin-bottom:8px;cursor:pointer}
+  .qrow:hover{background:var(--panel2)}
+  .qrow.active{border-color:var(--red)}
+  .qn{color:var(--dim);width:22px;text-align:right;font-size:13px;flex:none}
+  .qt{width:64px;aspect-ratio:16/9;object-fit:cover;border-radius:6px;background:#000;flex:none}
+  .qm{flex:1;min-width:0}
+  .qt2{font-size:13.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .qc{color:var(--dim);font-size:12px;margin-top:2px}
+  .qb{display:flex;gap:4px;flex:none}
+  .qb button{background:transparent;border:1px solid var(--line);color:var(--dim);
+    border-radius:6px;width:26px;height:26px;cursor:pointer;font-size:11px}
+  .qb button:hover{color:var(--txt);background:var(--panel2)}
+  .qb button:disabled{opacity:.35;cursor:default}
+  .addid{display:flex;gap:8px;margin-top:12px}
+  .addid input{flex:1;padding:9px 12px;border-radius:8px;border:1px solid var(--line);
+    background:var(--panel);color:var(--txt);outline:none;min-width:0}
+
+  footer{position:fixed;bottom:0;left:0;right:0;background:rgba(14,14,16,.94);
+    border-top:1px solid var(--line);font-size:12px;color:var(--dim);
+    padding:6px 14px;backdrop-filter:blur(6px)}
+  footer b{color:var(--txt);font-weight:600}
+
+  .modal{position:fixed;inset:0;background:rgba(0,0,0,.6);display:flex;
+    align-items:center;justify-content:center;z-index:50;padding:16px}
+  .hidden{display:none !important}
+  .mbox{background:var(--panel);border:1px solid var(--line);border-radius:14px;
+    padding:18px;max-width:540px;width:100%;max-height:85vh;overflow:auto}
+  .mbox h3{margin:0 0 6px;font-size:18px}
+  .mbox label{display:block;font-size:13px;font-weight:600;margin:14px 0 4px}
+  .mbox input{width:100%;padding:10px 12px;border-radius:8px;border:1px solid var(--line);
+    background:var(--bg);color:var(--txt);outline:none}
+  .mbox .hint{color:var(--dim);font-size:12.5px;margin:4px 0 0}
+  .mrow{display:flex;gap:8px;margin-top:18px;flex-wrap:wrap}
+  .mrow button{padding:9px 14px;border-radius:8px;border:1px solid var(--line);
+    background:var(--panel2);color:var(--txt);cursor:pointer}
+  .mrow button:first-child{background:var(--red);border-color:var(--red);font-weight:600}
+
+  #toasts{position:fixed;bottom:44px;left:50%;transform:translateX(-50%);
+    display:flex;flex-direction:column;gap:8px;z-index:60}
+  .toast{background:#26262c;border:1px solid var(--line);padding:9px 16px;
+    border-radius:999px;font-size:13px;animation:pop .18s ease}
+  .toast.out{opacity:0;transition:opacity .45s}
+  @keyframes pop{from{transform:translateY(8px);opacity:0}}
+
+  @media(max-width:560px){
+    .grid{grid-template-columns:repeat(auto-fill,minmax(150px,1fr))}
+    .wrap{padding:12px 10px 90px}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <h1>My <span class="dot">▶</span> Player</h1>
+    <button class="gear" id="setBtn">⚙ Settings</button>
+  </header>
+
+  <div class="searchbar">
+    <input id="searchInput" type="search" placeholder="Search YouTube videos…" enterkeyhint="search">
+    <button id="searchBtn">Search</button>
+  </div>
+
+  <div class="playerbox"><div id="ytplayer"></div></div>
+
+  <div class="np">
+    <div style="flex:1;min-width:0">
+      <div class="t" id="npTitle">Nothing playing yet</div>
+      <div class="c" id="npChan"></div>
+    </div>
+    <button class="chip" id="npAdd" style="display:none">+ Queue</button>
+  </div>
+
+  <section>
+    <h2>Recommended videos</h2>
+    <div class="msg" id="relMsg">Play something — recommendations show up here.</div>
+    <div class="grid" id="relatedGrid"></div>
+  </section>
+
+  <section>
+    <h2>Search results</h2>
+    <div class="msg" id="resMsg"></div>
+    <div class="grid" id="resultsGrid"></div>
+  </section>
+
+  <section>
+    <h2>My queue <span style="color:var(--dim);font-weight:400" id="qCount"></span></h2>
+    <div class="controls">
+      <button class="chip" id="playAllBtn">▶ Play all</button>
+      <button class="chip" id="loopBtn">🔁 Loop</button>
+      <button class="chip" id="shufBtn" title="Shuffles the playback order (the list itself stays as-is)">🔀 Shuffle</button>
+      <button class="chip" id="copyBtn" title="Rebuilds your old-style embed URL from this queue">📋 Copy old embed URL</button>
+      <button class="chip" id="clearBtn">🗑 Clear</button>
+    </div>
+    <div id="queueList"></div>
+    <div class="addid">
+      <input id="addIdInput" placeholder="Paste a YouTube link or video ID to add…">
+      <button class="chip" id="addIdBtn">Add</button>
+    </div>
+  </section>
+
+</div>
+
+<footer>Backend: <b id="backend">auto — will probe public backends</b></footer>
+
+<div id="modal" class="modal hidden">
+  <div class="mbox">
+    <h3>Settings</h3>
+    <label for="keyInput">YouTube Data API key (optional — most reliable)</label>
+    <input id="keyInput" placeholder="AIza…">
+    <p class="hint">Free from Google: console.cloud.google.com → create project →
+      "APIs &amp; Services" → Library → enable <b>YouTube Data API v3</b> →
+      Credentials → Create credentials → API key. Free quota ≈ 100 searches/day.</p>
+    <label for="customInput">Custom backend URL (optional)</label>
+    <input id="customInput" placeholder="https://pipedapi.example.org">
+    <p class="hint">Search/recommendations auto-try a list of public Piped/Invidious
+      instances. If those ever all get blocked, paste any working instance URL here
+      and it gets tried first.</p>
+    <div class="mrow">
+      <button id="saveSet">Save</button>
+      <button id="resetBackend">Reset backend</button>
+      <button id="closeSet">Close</button>
+    </div>
+  </div>
+</div>
+
+<div id="toasts"></div>
+
+<script>
+/* ================= helpers ================= */
+const el = s => document.querySelector(s);
+const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g,
+  c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+const LS = {
+  get(k, d) { try { const v = localStorage.getItem(k); return v === null ? d : JSON.parse(v); } catch (e) { return d; } },
+  set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} }
+};
+const fmtDur = s => {
+  if (s == null || !isFinite(s) || s < 0) return '';
+  s = Math.round(s);
+  const h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), x = s % 60;
+  return (h ? h + ':' + String(m).padStart(2, '0') : m) + ':' + String(x).padStart(2, '0');
+};
+const ytIdFromUrl = u => { const m = /(?:v=|youtu\.be\/|\/embed\/|\/shorts\/|\/watch\/)([\w-]{11})/.exec(u || ''); return m ? m[1] : null; };
+const decodeEntities = s => { const t = document.createElement('textarea'); t.innerHTML = s == null ? '' : s; return t.value; };
+const parseISODur = iso => { const m = /PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/.exec(iso || ''); return m ? (+m[1] || 0) * 3600 + (+m[2] || 0) * 60 + (+m[3] || 0) : null; };
+function toast(msg) {
+  const t = document.createElement('div');
+  t.className = 'toast'; t.textContent = msg;
+  el('#toasts').appendChild(t);
+  setTimeout(() => { t.classList.add('out'); setTimeout(() => t.remove(), 450); }, 2600);
+}
+async function tryFetch(url, ms = 4500) {
+  const c = new AbortController();
+  const timer = setTimeout(() => c.abort(), ms);
+  try {
+    const r = await fetch(url, { signal: c.signal });
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    return await r.json();
+  } finally { clearTimeout(timer); }
+}
+const firstOk = async tasks => { try { return await Promise.any(tasks); } catch (e) { return null; } };
+const chunks = (a, n) => { const o = []; for (let i = 0; i < a.length; i += n) o.push(a.slice(i, i + n)); return o; };
+
+/* ================= state ================= */
+// Public keyless backends (auto-probed in parallel batches; refresh via Settings if they die)
+const PIPED_BASES = [
+  'https://pipedapi.kavin.rocks',
+  'https://api.piped.private.coffee',
+  'https://pipedapi.adminforge.de',
+  'https://pipedapi.drgns.space',
+  'https://pipedapi.reallyaweso.me',
+  'https://piapi.ggtyler.dev',
+  'https://pipedapi.ducks.party',
+];
+const INV_BASES = [
+  'https://inv.nadeko.net',
+  'https://invidious.nerdvpn.de',
+  'https://yewtu.be',
+  'https://iv.melmac.space',
+  'https://invidious.jing.rocks',
+  'https://invidious.privacyredirect.com',
+  'https://invidious.f5.si',
+];
+// Your original song list — pre-loaded on first visit, then saved/edited in your browser
+const DEFAULT_QUEUE = [
+  'G7KNmW9a75Y','gArrZmiEddw','n17ioePiMBM','Q6FarZpy67M','TTOPBQhrvtQ',
+  'wagn8Wrmzuc','DYz-LjtiVOc','rLoV8ZB6ZOQ','TGgcC5xg9YI','sVfWq_AQEWQ',
+  'H5v3kku4y6Q','Gs069dndIYk','i1P-9IspBus','KJWrvoMlHvY','NMA_isZYsYQ',
+  '4JkIs37a2JE','WHoOBWbmCUc'
+];
+
+let queue = LS.get('ytq', null) || DEFAULT_QUEUE.slice();
+let loopOn = LS.get('ytloop', true);
+let titles = LS.get('yttitles', {}) || {};
+let apiKey = LS.get('ytkey', '') || '';
+let customBase = LS.get('ytcustom', '') || '';
+let engine = LS.get('ytengine', null);
+
+let player = null, playerReady = false, plLoaded = false;
+let currentId = null, currentTitle = '', currentChannel = '';
+let lastRelFor = null, lastRelated = [], busySearch = false, errStreak = 0, titleBusy = false;
+
+/* ================= search / recommendations backends ================= */
+function setEngine(e) {
+  if (!e || (engine && engine.kind === e.kind && engine.base === e.base)) return;
+  engine = e; LS.set('ytengine', e);
+  el('#backend').textContent = e.kind === 'api' ? 'official YouTube API' : (e.kind + ' — ' + e.base);
+}
+function candidates(kind) {
+  const list = (kind === 'piped' ? PIPED_BASES : INV_BASES).slice();
+  if (engine && engine.kind === kind && list.includes(engine.base)) {
+    list.splice(list.indexOf(engine.base), 1);
+    list.unshift(engine.base);
+  }
+  return list;
+}
+function customBases() {
+  let b = (customBase || '').trim().replace(/\/+$/, '');
+  if (!b) return [];
+  if (!/^https?:\/\//.test(b)) b = 'https://' + b;
+  return [b];
+}
+function engineEntries() {
+  const e = [];
+  for (const b of customBases()) { e.push({ base: b, kind: 'piped' }, { base: b, kind: 'invidious' }); }
+  for (const kind of ['piped', 'invidious']) for (const b of candidates(kind)) e.push({ base: b, kind });
+  return e;
+}
+
+/* ---- Piped ---- */
+async function pipedSearch(base, q) {
+  const j = await tryFetch(base + '/search?q=' + encodeURIComponent(q) + '&filter=videos');
+  const items = Array.isArray(j && j.items) ? j.items : [];
+  return items.map(it => {
+    const id = it.id || ytIdFromUrl(it.url || '');
+    return id ? { id, title: it.title || '(untitled)', channel: it.uploaderName || it.uploader || '',
+      duration: it.duration > 0 ? it.duration : null } : null;
+  }).filter(Boolean).slice(0, 12);
+}
+async function pipedRelated(base, id) {
+  const j = await tryFetch(base + '/streams/' + id);
+  const rel = Array.isArray(j && j.relatedStreams) ? j.relatedStreams : [];
+  return {
+    title: (j && j.title) || null, channel: (j && j.uploader) || null,
+    related: rel.filter(s => !s.type || s.type === 'stream').map(s => {
+      const vid = ytIdFromUrl(s.url || '');
+      return vid ? { id: vid, title: s.title || '', channel: s.uploaderName || s.uploader || '',
+        duration: s.duration > 0 ? s.duration : null } : null;
+    }).filter(Boolean).slice(0, 12)
+  };
+}
+/* ---- Invidious ---- */
+async function invSearch(base, q) {
+  const j = await tryFetch(base + '/api/v1/search?type=video&q=' + encodeURIComponent(q));
+  if (!Array.isArray(j)) return [];
+  return j.filter(v => v && v.videoId).map(v => ({
+    id: v.videoId, title: v.title || '(untitled)', channel: v.author || '',
+    duration: v.lengthSeconds || null
+  })).slice(0, 12);
+}
+async function invRelated(base, id) {
+  const j = await tryFetch(base + '/api/v1/videos/' + id);
+  const rel = Array.isArray(j && j.recommendedVideos) ? j.recommendedVideos : [];
+  return {
+    title: (j && j.title) || null, channel: (j && j.author) || null,
+    related: rel.filter(v => v && v.videoId).map(v => ({
+      id: v.videoId, title: v.title || '', channel: v.author || '', duration: v.lengthSeconds || null
+    })).slice(0, 12)
+  };
+}
+/* ---- keyless orchestrators (parallel, first success wins) ---- */
+async function keylessSearch(q) {
+  for (const group of chunks(engineEntries(), 4)) {
+    const w = await firstOk(group.map(async ent => {
+      const r = ent.kind === 'piped' ? await pipedSearch(ent.base, q) : await invSearch(ent.base, q);
+      if (!r.length) throw new Error('no results');
+      return { ent, r };
+    }));
+    if (w) { setEngine({ kind: w.ent.kind, base: w.ent.base }); return w.r; }
+  }
+  throw new Error('all keyless backends failed');
+}
+async function keylessRelated(id) {
+  for (const group of chunks(engineEntries(), 4)) {
+    const w = await firstOk(group.map(async ent => {
+      const r = ent.kind === 'piped' ? await pipedRelated(ent.base, id) : await invRelated(ent.base, id);
+      if (!r.related || !r.related.length) throw new Error('none');
+      return { ent, r };
+    }));
+    if (w) {
+      setEngine({ kind: w.ent.kind, base: w.ent.base });
+      if (w.r.title && currentId === id) {
+        if (!currentTitle) currentTitle = w.r.title;
+        if (!currentChannel) currentChannel = w.r.channel || '';
+        cacheTitle(id, w.r.title, w.r.channel);
+        updateNowPlaying();
+      }
+      return w.r;
+    }
+  }
+  throw new Error('all keyless backends failed');
+}
+/* ---- official YouTube Data API v3 (if a key is saved) ---- */
+async function apiSearch(q, key) {
+  const s = await tryFetch('https://www.googleapis.com/youtube/v3/search?part=snippet&type=video'
+    + '&videoEmbeddable=true&maxResults=12&q=' + encodeURIComponent(q) + '&key=' + key);
+  const items = (s.items || []).filter(i => i.id && i.id.videoId);
+  if (!items.length) return [];
+  const ids = items.map(i => i.id.videoId), dur = {};
+  try {
+    const v = await tryFetch('https://www.googleapis.com/youtube/v3/videos?part=contentDetails&id='
+      + ids.join(',') + '&key=' + key);
+    (v.items || []).forEach(it => { if (it.contentDetails) dur[it.id] = parseISODur(it.contentDetails.duration); });
+  } catch (e) {}
+  return items.map(i => ({ id: i.id.videoId, title: decodeEntities(i.snippet.title),
+    channel: i.snippet.channelTitle, duration: dur[i.id.videoId] != null ? dur[i.id.videoId] : null }));
+}
+async function apiRelated(id, key) {
+  const s = await tryFetch('https://www.googleapis.com/youtube/v3/search?part=snippet&type=video'
+    + '&maxResults=12&relatedToVideoId=' + id + '&key=' + key);
+  return (s.items || []).filter(i => i.id && i.id.videoId).map(i => ({
+    id: i.id.videoId, title: decodeEntities(i.snippet.title), channel: i.snippet.channelTitle, duration: null }));
+}
+async function searchVideos(q) {
+  const key = apiKey.trim();
+  if (key) { try { const r = await apiSearch(q, key); if (r.length) { setEngine({ kind: 'api' }); return r; } } catch (e) {} }
+  return keylessSearch(q);
+}
+async function getRelated(id) {
+  const key = apiKey.trim();
+  if (key) {
+    try { const r = await apiRelated(id, key); if (r.length) return r; } catch (e) {}
+    const t = (currentTitle || (titles[id] || {}).t || '').trim();
+    if (t) { // YouTube removed the official related endpoint -> similar-video fallback
+      try { const r = await apiSearch(t, key); const f = r.filter(v => v.id !== id).slice(0, 12); if (f.length) return f; } catch (e) {}
+    }
+  }
+  const r = await keylessRelated(id);
+  return r.related;
+}
+async function oembedTitle(id) {
+  const u = encodeURIComponent('https://www.youtube.com/watch?v=' + id);
+  try { const j = await tryFetch('https://noembed.com/embed?url=' + u, 5000);
+    if (j && j.title) return { title: j.title, channel: j.author_name || '' }; } catch (e) {}
+  try { const j = await tryFetch('https://www.youtube.com/oembed?url=' + u + '&format=json', 5000);
+    if (j && j.title) return { title: j.title, channel: j.author_name || '' }; } catch (e) {}
+  return null;
+}
+
+/* ================= rendering ================= */
+function cacheTitle(id, t, c, d) {
+  if (!id) return;
+  const old = titles[id] || {};
+  titles[id] = { t: t || old.t || '', c: c || old.c || '', d: (d != null ? d : old.d) };
+  const keys = Object.keys(titles);
+  if (keys.length > 400) keys.slice(0, keys.length - 400).forEach(k => delete titles[k]);
+  LS.set('yttitles', titles);
+}
+function renderCards(gridSel, vids) {
+  const grid = el(gridSel);
+  grid.innerHTML = '';
+  vids.forEach(v => {
+    const card = document.createElement('div');
+    card.className = 'card';
+    card.innerHTML =
+      '<div class="thumb"><img loading="lazy" alt="" src="https://i.ytimg.com/vi/' + esc(v.id) + '/mqdefault.jpg">'
+      + (v.duration ? '<span class="dur">' + fmtDur(v.duration) + '</span>' : '') + '</div>'
+      + '<div class="meta"><div class="ct" title="' + esc(v.title) + '">' + esc(v.title) + '</div>'
+      + '<div class="cc">' + esc(v.channel || '') + '</div></div>'
+      + '<button class="addq" title="Add to queue">+</button>';
+    card.addEventListener('click', () => playSingle(v));
+    card.querySelector('.addq').addEventListener('click', e => { e.stopPropagation(); addToQueue(v); });
+    grid.appendChild(card);
+  });
+}
+function renderQueue() {
+  const list = el('#queueList');
+  list.innerHTML = '';
+  queue.forEach((id, i) => {
+    const t = titles[id] || {};
+    const row = document.createElement('div');
+    row.className = 'qrow' + (plLoaded && id === currentId ? ' active' : '');
+    row.innerHTML =
+      '<span class="qn">' + (i + 1) + '</span>'
+      + '<img class="qt" loading="lazy" alt="" src="https://i.ytimg.com/vi/' + esc(id) + '/default.jpg">'
+      + '<div class="qm"><div class="qt2">' + esc(t.t || 'YouTube video ' + id) + '</div>'
+      + '<div class="qc">' + esc(t.c || '') + (t.d ? ' · ' + fmtDur(t.d) : '') + '</div></div>'
+      + '<div class="qb"><button data-a="up" title="Move up"' + (i === 0 ? ' disabled' : '') + '>▲</button>'
+      + '<button data-a="down" title="Move down"' + (i === queue.length - 1 ? ' disabled' : '') + '>▼</button>'
+      + '<button data-a="rm" title="Remove">✕</button></div>';
+    row.addEventListener('click', e => { if (!e.target.closest('button')) playQueueAt(i); });
+    row.querySelectorAll('button').forEach(b => b.addEventListener('click', e => {
+      e.stopPropagation();
+      const a = b.dataset.a;
+      if (a === 'up' && i > 0) queue.splice(i - 1, 0, queue.splice(i, 1)[0]);
+      else if (a === 'down' && i < queue.length - 1) queue.splice(i + 1, 0, queue.splice(i, 1)[0]);
+      else if (a === 'rm') queue.splice(i, 1);
+      renderQueue(); LS.set('ytq', queue);
+    }));
+    list.appendChild(row);
+  });
+  el('#qCount').textContent = queue.length ? '(' + queue.length + ')' : '';
+}
+function updateNowPlaying() {
+  el('#npTitle').textContent = currentTitle || (currentId ? 'YouTube video ' + currentId : 'Nothing playing yet');
+  el('#npChan').textContent = currentChannel || '';
+  el('#npAdd').style.display = currentId ? '' : 'none';
+}
+
+/* ================= playback ================= */
+function playSingle(v) {
+  if (!playerReady) { toast('Player still loading, one sec…'); return; }
+  plLoaded = false;
+  currentId = v.id; currentTitle = v.title || ''; currentChannel = v.channel || '';
+  cacheTitle(v.id, v.title, v.channel, v.duration);
+  try { player.loadVideoById(v.id); } catch (e) {}
+  updateNowPlaying(); renderQueue(); loadRelated(v.id);
+  if (window.innerWidth < 760) el('.playerbox').scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+function playQueueAt(i) {
+  if (!playerReady) { toast('Player still loading, one sec…'); return; }
+  if (!queue.length) { toast('Queue is empty'); return; }
+  const idx = Math.max(0, Math.min(i, queue.length - 1));
+  try {
+    if (plLoaded) player.playVideoAt(idx);
+    else { player.loadPlaylist(queue, idx); plLoaded = true; }
+    if (loopOn) player.setLoop(loopOn);
+  } catch (e) { toast('Could not start the queue'); }
+}
+function addToQueue(v, silent) {
+  if (!v || !v.id) return;
+  if (queue.includes(v.id)) { if (!silent) toast('Already in the queue'); return; }
+  queue.push(v.id);
+  cacheTitle(v.id, v.title, v.channel, v.duration);
+  LS.set('ytq', queue);
+  renderQueue();
+  if (!silent) toast('Added to queue');
+}
+function setLoopOn(on) {
+  loopOn = !!on;
+  LS.set('ytloop', loopOn);
+  el('#loopBtn').classList.toggle('on', loopOn);
+  if (playerReady && plLoaded) { try { player.setLoop(loopOn); } catch (e) {} }
+}
+async function loadRelated(id) {
+  if (!id || lastRelFor === id) return;
+  lastRelFor = id;
+  el('#relMsg').textContent = 'Loading recommendations…';
+  try {
+    const r = await getRelated(id);
+    lastRelated = r;
+    renderCards('#relatedGrid', r);
+    el('#relMsg').textContent = r.length ? '' : 'No recommendations found for this video.';
+  } catch (e) {
+    lastRelated = [];
+    renderCards('#relatedGrid', []);
+    el('#relMsg').textContent = 'Could not load recommendations (public backends get blocked sometimes — an API key in Settings fixes this).';
+  }
+}
+async function resolveQueueTitles() {
+  if (titleBusy) return;
+  const missing = queue.filter(id => !(titles[id] || {}).t);
+  if (!missing.length) return;
+  titleBusy = true;
+  try {
+    for (const id of missing.slice(0, 15)) {
+      const m = await oembedTitle(id);
+      if (m) { cacheTitle(id, m.title, m.channel); renderQueue(); }
+      await sleep(250);
+    }
+  } finally { titleBusy = false; }
+}
+
+/* ================= YouTube IFrame API ================= */
+window.onYouTubeIframeAPIReady = function () { createPlayer(); };
+function createPlayer() {
+  player = new YT.Player('ytplayer', {
+    width: '100%', height: '100%',
+    playerVars: { playsinline: 1, rel: 1, origin: location.origin },
+    events: { onReady: onPlayerReady, onStateChange: onPlayerState, onError: onPlayerError }
+  });
+}
+function onPlayerReady() {
+  playerReady = true;
+  try {
+    if (queue.length) {
+      player.cuePlaylist(queue);          // same vibe as your old embed: ready to go
+      plLoaded = true;
+      if (loopOn) player.setLoop(true);
+      currentId = queue[0];
+      currentTitle = (titles[queue[0]] || {}).t || '';
+      currentChannel = (titles[queue[0]] || {}).c || '';
+      updateNowPlaying();
+      loadRelated(queue[0]);
+      resolveQueueTitles();
+    }
+  } catch (e) {}
+}
+function onPlayerState(e) {
+  if (!window.YT || !YT.PlayerState) return;
+  if (e.data === YT.PlayerState.PLAYING) {
+    errStreak = 0;
+    if (plLoaded && loopOn) { try { player.setLoop(true); } catch (err) {} }
+    syncCurrentVideo();
+  }
+}
+function onPlayerError(e) {
+  const map = { 2: 'Bad video ID', 5: 'Playback error', 100: 'Video deleted or private',
+    101: 'Embedding disabled by owner', 150: 'Embedding disabled by owner' };
+  toast('⚠ ' + (map[e.data] || 'Playback error') + (plLoaded ? ' — skipping' : ''));
+  errStreak++;
+  if (plLoaded && errStreak < 25) { try { player.nextVideo(); } catch (err) {} }
+  else if (errStreak >= 25) { try { player.stopVideo(); } catch (err) {} }
+}
+function syncCurrentVideo() {
+  let id = null, title = null, author = null;
+  try { const d = player.getVideoData(); if (d) { id = d.video_id; title = d.title; author = d.author; } } catch (e) {}
+  if (!id) { try { id = ytIdFromUrl(player.getVideoUrl()); } catch (e) {} }
+  if (!id) return;
+  if (id !== currentId) {
+    currentId = id;
+    currentTitle = title || (titles[id] || {}).t || '';
+    currentChannel = author || (titles[id] || {}).c || '';
+    if (title) cacheTitle(id, title, author);
+    updateNowPlaying(); renderQueue(); loadRelated(id);
+  } else if (title && currentTitle !== title) {
+    currentTitle = title; currentChannel = author || currentChannel;
+    cacheTitle(id, title, author); updateNowPlaying();
+  }
+}
+
+/* ================= UI wiring ================= */
+async function doSearch() {
+  const q = el('#searchInput').value.trim();
+  if (!q) { toast('Type something to search first'); return; }
+  if (busySearch) return;
+  busySearch = true;
+  const btn = el('#searchBtn');
+  btn.disabled = true; btn.textContent = '…';
+  el('#resMsg').textContent = 'Searching…';
+  try {
+    const r = await searchVideos(q);
+    renderCards('#resultsGrid', r);
+    el('#resMsg').textContent = r.length ? '' : 'No results found.';
+  } catch (e) {
+    renderCards('#resultsGrid', []);
+    el('#resMsg').textContent = 'Search failed — public backends unreachable right now. Open Settings and paste a free YouTube API key to fix it.';
+  } finally {
+    busySearch = false; btn.disabled = false; btn.textContent = 'Search';
+  }
+}
+el('#searchBtn').addEventListener('click', doSearch);
+el('#searchInput').addEventListener('keydown', e => { if (e.key === 'Enter') doSearch(); });
+
+el('#playAllBtn').addEventListener('click', () => playQueueAt(0));
+el('#loopBtn').addEventListener('click', () => setLoopOn(!loopOn));
+el('#shufBtn').addEventListener('click', () => {
+  if (playerReady && plLoaded) { try { player.setShuffle(true); toast('Shuffled playback order'); } catch (e) {} }
+  else toast('Start the queue first, then shuffle');
+});
+el('#clearBtn').addEventListener('click', () => {
+  if (!queue.length) return;
+  if (!confirm('Clear the entire queue?')) return;
+  queue = []; LS.set('ytq', queue); renderQueue();
+});
+el('#copyBtn').addEventListener('click', async () => {
+  if (!queue.length) { toast('Queue is empty'); return; }
+  const url = 'https://www.youtube.com/embed/' + queue[0] + '?playlist=' + queue.join(',') + (loopOn ? '&loop=1' : '');
+  try { await navigator.clipboard.writeText(url); toast('Old-style embed URL copied'); }
+  catch (e) { window.prompt('Copy this:', url); }
+});
+el('#npAdd').addEventListener('click', () => addToQueue({ id: currentId, title: currentTitle, channel: currentChannel }));
+el('#addIdBtn').addEventListener('click', async () => {
+  const raw = el('#addIdInput').value.trim();
+  if (!raw) { toast('Paste a link or ID first'); return; }
+  const id = ytIdFromUrl(raw) || (/^[\w-]{11}$/.test(raw) ? raw : null);
+  if (!id) { toast('That does not look like a YouTube link or ID'); return; }
+  if (queue.includes(id)) { toast('Already in the queue'); return; }
+  queue.push(id); LS.set('ytq', queue); renderQueue(); toast('Added');
+  el('#addIdInput').value = '';
+  const m = await oembedTitle(id);
+  if (m) { cacheTitle(id, m.title, m.channel); renderQueue(); }
+});
+el('#setBtn').addEventListener('click', () => {
+  el('#keyInput').value = apiKey || '';
+  el('#customInput').value = customBase || '';
+  el('#modal').classList.remove('hidden');
+});
+el('#closeSet').addEventListener('click', () => el('#modal').classList.add('hidden'));
+el('#modal').addEventListener('click', e => { if (e.target === el('#modal')) el('#modal').classList.add('hidden'); });
+el('#saveSet').addEventListener('click', () => {
+  apiKey = el('#keyInput').value.trim();
+  customBase = el('#customInput').value.trim().replace(/\/+$/, '');
+  LS.set('ytkey', apiKey); LS.set('ytcustom', customBase);
+  engine = null; LS.set('ytengine', null);
+  el('#backend').textContent = apiKey ? 'official YouTube API (saved)' : 'auto — will probe public backends';
+  el('#modal').classList.add('hidden');
+  toast('Settings saved');
+});
+el('#resetBackend').addEventListener('click', () => {
+  engine = null; LS.set('ytengine', null);
+  el('#backend').textContent = 'auto — will probe public backends';
+  toast('Backend reset — next search probes again');
+});
+
+/* ================= boot ================= */
+el('#loopBtn').classList.toggle('on', loopOn);
+renderQueue(); updateNowPlaying(); resolveQueueTitles();
+setTimeout(() => {
+  if (!playerReady && el('#ytplayer')) {
+    el('#ytplayer').innerHTML = '<div style="display:flex;height:100%;align-items:center;'
+      + 'justify-content:center;color:#9b9ba6;font-size:14px">YouTube player failed to load — check your connection.</div>';
+  }
+}, 10000);
+</script>
+<script src="https://www.youtube.com/iframe_api" async></script>
+</body>
+</html>
